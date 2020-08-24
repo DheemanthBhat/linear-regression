@@ -1,0 +1,273 @@
+<html>
+
+<body onload="main()">
+  <h4>Report</h4>
+  <p>
+    Learning Rate:
+    <span id="learning-rate"></span>
+  </p>
+  <p>Modal parameters calculated using gradient descent:</p>
+  <ol id="gd-parameters"></ol>
+
+  <!--
+  <p>Modal parameters calculated using Normal equations:</p>
+  <ol id="ne-parameters"></ol>
+  -->
+
+  <p>
+    Coefficient of Determination:
+    <span id="cod"></span>
+  </p>
+  <p>Predictions:</p>
+  <table border="1" cellspacing="0" cellpadding="5">
+    <thead>
+      <tr>
+        <th colspan="3">Features</th>
+        <th>Labels</th>
+      </tr>
+    </thead>
+    <tbody id="predictions"></tbody>
+  </table>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/7.1.0/math.min.js"></script>
+  <script src="http://127.0.0.1:8080/Linear-regression-browser/data.js"></script>
+  <script src="http://127.0.0.1:8080/Linear-regression-browser/linear-regression.js"></script>
+  <script>
+    async function main() {
+      const fileURL = "http://127.0.0.1:8080/Linear-regression-browser/cars.csv";
+      const carsDataset = tf.data.csv(fileURL);
+      let options = {
+        learningRate: 0.1,
+        iterations: 27,
+        batchSize: 10
+      }
+
+      await plotData(carsDataset);
+
+      // Initialization
+      let regression = new LinearRegression(trainingFeatures, trainingLabels, options);
+
+      plotProcessedData(regression);
+
+      // Training
+      regression.train();
+      document.getElementById('learning-rate').innerHTML = regression.options.learningRate;
+
+      listParameters(regression);
+      plotErrorGraph(regression);
+
+      // Testing
+      let cod = regression.test(testingFeatures, testingLabels);
+      document.getElementById('cod').innerHTML = cod;
+
+      // Prediction
+      let predictions = regression.predict(input).arraySync();
+      listPredictions(input, predictions);
+
+      plotModel(input, predictions, trainingFeatures, trainingLabels);
+    }
+
+    function scatterplot(pointsArray, xLabel, yLabel, tabName) {
+      let surface = {
+        name: `${xLabel} vs ${yLabel}`,
+        tab: tabName
+      }
+      let data = { values: pointsArray };
+      let options = {
+        xLabel: xLabel,
+        yLabel: yLabel
+      }
+
+      tfvis.render.scatterplot(surface, data, options);
+    }
+
+    function linechart(pointsArray, xLabel, yLabel, tabName) {
+      let surface = {
+        name: `${xLabel} vs ${yLabel}`,
+        tab: tabName
+      }
+      let data = { values: pointsArray };
+      let options = {
+        xLabel: xLabel,
+        yLabel: yLabel
+      }
+
+      tfvis.render.linechart(surface, data, options);
+    }
+
+    function listParameters(regression) {
+      let weights = regression.weights.arraySync();
+      let ol = document.getElementById('gd-parameters');
+      for (let i = 0; i < weights.length; i++) {
+        var li = document.createElement('li');
+        li.innerHTML = weights[i];
+        ol.appendChild(li);
+      }
+
+
+      // let params = regression.normalEquation().arraySync();
+      // let ol2 = document.getElementById('ne-parameters');
+      // for (let i = 0; i < params.length; i++) {
+      //   var li = document.createElement('li');
+      //   li.innerHTML = params[i];
+      //   ol2.appendChild(li);
+      // }
+    }
+
+    // function listPredictions(input, predictions) {
+    //   let tbody = document.getElementById('predictions');
+    //   for (let i = 0; i < predictions.length; i++) {
+    //     var tr = document.createElement('tr');
+    //     var td1 = document.createElement('td');
+    //     var td2 = document.createElement('td');
+
+    //     td1.innerHTML = JSON.stringify(input[i]);
+    //     td2.innerHTML = predictions[i];
+    //     tr.appendChild(td1);
+    //     tr.appendChild(td2);
+    //     tbody.appendChild(tr);
+    //   }
+    // }
+
+    function listPredictions(input, predictions) {
+      let tbody = document.getElementById('predictions');
+      for (let i = 0; i < predictions.length; i++) {
+        let tr = document.createElement('tr');
+        for (let j = 0; j < 3; j++) {
+          let td = document.createElement('td');
+          td.innerHTML = input[i][j].toFixed(6);
+          tr.appendChild(td);
+        }
+
+        let td2 = document.createElement('td');
+        console.log(predictions[i][0]);
+        td2.innerHTML = predictions[i][0].toFixed(6);
+        tr.appendChild(td2);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function plotErrorGraph(regression) {
+      let errorValues = regression.mseHistory.reverse();
+      let errorPoints = [];
+      for (let i = 0; i < errorValues.length; i++) {
+        errorPoints.push({
+          x: i,
+          y: errorValues[i]
+        })
+      }
+
+      linechart(errorPoints, 'Iteration', 'J(Theta)', 'Cost');
+    }
+
+    async function plotData(carsDataset) {
+      // Horsepower vs M.P.G
+      let hmPointsArray = await carsDataset.map((record) => {
+        return {
+          x: record.horsepower,
+          y: record.mpg
+        }
+      }).toArray();
+
+      scatterplot([hmPointsArray], 'Horsepower', 'M.P.G', 'Data');
+
+      // Weight vs M.P.G
+      let wmPointsArray = await carsDataset.map((record) => {
+        return {
+          x: record.weight,
+          y: record.mpg
+        }
+      }).toArray();
+
+      scatterplot([wmPointsArray], 'Weight', 'M.P.G', 'Data');
+
+      let dmPointsArray = await carsDataset.map((record) => {
+        return {
+          x: record.displacement,
+          y: record.mpg
+        }
+      }).toArray();
+
+      scatterplot([dmPointsArray], 'Displacement', 'M.P.G', 'Data');
+    }
+
+    function plotProcessedData(regression) {
+      let pFeatures = regression.features.arraySync();
+      let pLabels = regression.labels.arraySync();
+
+      let horsepower = [];
+      let weight = [];
+      let displacement = [];
+      for (let i = 0; i < pFeatures.length; i++) {
+        horsepower.push({
+          x: pFeatures[i][1],
+          y: pLabels[i][0]
+        });
+
+        weight.push({
+          x: pFeatures[i][2],
+          y: pLabels[i][0]
+        })
+
+        displacement.push({
+          x: pFeatures[i][3],
+          y: pLabels[i][0]
+        })
+      }
+
+      scatterplot(horsepower, 'Horsepower', 'M.P.G', 'Scaled features');
+      scatterplot(weight, 'Weight', 'M.P.G', 'Scaled features');
+      scatterplot(displacement, 'Displacement', 'M.P.G', 'Scaled features');
+    }
+
+    function plotModel(input, predictions, trainingFeatures, trainingLabels) {
+      let horsepower = [];
+      let weight = [];
+      let displacement = [];
+      for (let i = 0; i < trainingFeatures.length; i++) {
+        horsepower.push({
+          x: trainingFeatures[i][0],
+          y: trainingLabels[i][0]
+        });
+
+        weight.push({
+          x: trainingFeatures[i][1],
+          y: trainingLabels[i][0]
+        });
+
+        displacement.push({
+          x: trainingFeatures[i][2],
+          y: trainingLabels[i][0]
+        });
+      }
+
+      let hModel = [];
+      let wModel = [];
+      let dModel = [];
+      for (let i = 0; i < input.length; i++) {
+        hModel.push({
+          x: input[i][0],
+          y: predictions[i]
+        });
+
+        wModel.push({
+          x: input[i][1],
+          y: predictions[i]
+        });
+
+        dModel.push({
+          x: input[i][2],
+          y: predictions[i]
+        });
+      }
+
+      scatterplot([horsepower, hModel], 'Horsepower', 'M.P.G', 'Model');
+      scatterplot([weight, wModel], 'Weight', 'M.P.G', 'Model');
+      scatterplot([displacement, dModel], 'Displacement', 'M.P.G', 'Model');
+    }
+  </script>
+
+</html>

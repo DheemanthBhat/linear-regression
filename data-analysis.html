@@ -1,0 +1,118 @@
+<html>
+
+<body>
+  <pre id="result"></pre>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
+  <script>
+    async function main() {
+      const fileURL = "http://127.0.0.1:8080/Linear-regression-browser/cars.csv";
+      const carsDataset = tf.data.csv(fileURL);
+
+
+      let pointsDatasets = [];
+      pointsDatasets.push({
+        xLabel: 'Horsepower',
+        yLabel: 'M.P.G',
+        // Extract x and y values to plot.
+        data: carsDataset.map(record => ({
+          x: record.horsepower,
+          y: record.mpg
+        }))
+      });
+
+      pointsDatasets.push({
+        xLabel: 'Weight',
+        yLabel: 'M.P.G',
+        // Extract x and y values to plot.
+        data: carsDataset.map(record => ({
+          x: record.weight,
+          y: record.mpg
+        }))
+      });
+
+      pointsDatasets.push({
+        xLabel: 'Displacement',
+        yLabel: 'M.P.G',
+        // Extract x and y values to plot.
+        data: carsDataset.map(record => ({
+          x: record.displacement,
+          y: record.mpg
+        }))
+      });
+
+      pointsDatasets.push({
+        xLabel: 'Weight',
+        yLabel: 'Horsepower',
+        // Extract x and y values to plot.
+        data: carsDataset.map(record => ({
+          x: record.weight,
+          y: record.horsepower
+        }))
+      });
+
+      pointsDatasets.push({
+        xLabel: 'Weight',
+        yLabel: 'Acceleration',
+        // Extract x and y values to plot.
+        data: carsDataset.map(record => ({
+          x: record.weight,
+          y: record.acceleration
+        }))
+      });
+
+      pointsDatasets.push({
+        xLabel: 'Horsepower',
+        yLabel: 'Acceleration',
+        // Extract x and y values to plot.
+        data: carsDataset.map(record => ({
+          x: record.horsepower,
+          y: record.acceleration
+        }))
+      });
+
+      pointsDatasets.push({
+        xLabel: 'Weight',
+        yLabel: 'Displacement',
+        // Extract x and y values to plot.
+        data: carsDataset.map(record => ({
+          x: record.weight,
+          y: record.displacement
+        }))
+      });
+
+      pointsDatasets.push({
+        xLabel: 'Year Manufactured',
+        yLabel: 'cylinders',
+        // Extract x and y values to plot.
+        data: carsDataset.map(record => ({
+          x: record.modelyear,
+          y: record.cylinders
+        }))
+      });
+
+      for (let i = 0; i < pointsDatasets.length; i++) {
+        let dataset = pointsDatasets[i];
+        let pointsArray = await dataset.data.toArray();
+        plot(pointsArray, dataset.xLabel, dataset.yLabel);
+      }
+    }
+
+    function plot(pointsArray, xLabel, yLabel) {
+      let surface = {
+        name: `${xLabel} vs ${yLabel}`,
+        tab: 'Data Analysis'
+      }
+      let data = { values: [pointsArray] };
+      let options = {
+        xLabel: xLabel,
+        yLabel: yLabel
+      }
+
+      tfvis.render.scatterplot(surface, data, options);
+    }
+
+    main();
+  </script>
+
+</html>
