@@ -24,22 +24,20 @@ class LinearRegression {
     let features = tf.tensor(featuresArray);
     features = this.standardize(features);
 
-    let n = features.shape[0];
-    let identity = tf.ones([n, 1]); // Identity vector
+    const n = features.shape[0];
+    const identity = tf.ones([n, 1]); // Identity vector
     // Concat features to identity vector.
-    features = identity.concat(features, 1);
-
-    return features;
+    return identity.concat(features, 1);
   }
 
   normalEquation() {
-    let xTranspose = this.features.transpose();
+    const xTranspose = this.features.transpose();
 
-    let A = xTranspose.matMul(this.features);
+    const A = xTranspose.matMul(this.features);
 
-    let AInverse = tf.tensor(math.inv(A.arraySync()));
+    const AInverse = tf.tensor(math.inv(A.arraySync()));
 
-    let theta = AInverse.matMul(xTranspose).matMul(this.labels);
+    const theta = AInverse.matMul(xTranspose).matMul(this.labels);
 
     return theta;
   }
@@ -47,7 +45,7 @@ class LinearRegression {
   // Mean Normalization
   standardize(features) {
     if (this.mean === undefined || this.standardDeviation === undefined) {
-      let { mean, variance } = tf.moments(features, 0);
+      const { mean, variance } = tf.moments(features, 0);
       this.mean = mean;
       this.standardDeviation = variance.pow(0.5);
     }
@@ -57,13 +55,13 @@ class LinearRegression {
 
   train() {
     console.log(`${this.n} records are used for training.`);
-    let batchCount = parseInt(this.n / this.options.batchSize);
+    const batchCount = parseInt(this.n / this.options.batchSize);
     console.log(`Batch Count: ${batchCount}`);
     for (let i = 0; i < this.options.iterations; i++) {
       // console.log(`Learning rate: ${this.options.learningRate}`);
       for (let j = 0; j < batchCount; j++) {
-        let { features, labels } = this.getNextBatch(j);
-        this.weights = this.gradientDescent(features, labels);
+        const { features, labels } = this.getNextBatch(j);
+        this.gradientDescent(features, labels);
       }
 
       this.recordMSE();
@@ -73,7 +71,7 @@ class LinearRegression {
 
   gradientDescent(features, labels) {
     // Total number of rows in features.
-    let n = features.shape[0];
+    const n = features.shape[0];
 
     /**
      * h = t0 + t1*x1 + t2*x2 + ... + tn*xn
@@ -84,12 +82,12 @@ class LinearRegression {
      *  X - feature matrix,
      *  Theta - parameters/weights matrix.
      */
-    let h = features.matMul(this.weights);
+    const h = features.matMul(this.weights);
 
-    let difference = h.sub(labels);
+    const difference = h.sub(labels);
 
     // Derivative of MSE w.r.t weights, i.e., J(Theta)
-    let J = features
+    const slopes = features
       .transpose()
       .matMul(difference)
       //.mul(2) // Optional (Usually this is omitted in most of the Gradient descent implementations).
@@ -99,15 +97,15 @@ class LinearRegression {
      * Multiply slopes with learning rate
      * and subtract results from weights.
      */
-    return this.weights.sub(J.mul(this.options.learningRate));
+    this.weights = this.weights.sub(slopes.mul(this.options.learningRate));
   }
 
   test(testFeaturesArray, testLabelsArray) {
-    let testFeatures = this.processFeatures(testFeaturesArray);
-    let testLabels = tf.tensor(testLabelsArray);
+    const testFeatures = this.processFeatures(testFeaturesArray);
+    const testLabels = tf.tensor(testLabelsArray);
 
-    let h = testFeatures.matMul(this.weights);
-    let cod = this.rSquared(testLabels, h);
+    const h = testFeatures.matMul(this.weights);
+    const cod = this.rSquared(testLabels, h);
     // cod - coefficient of determination
     return cod;
   }
@@ -120,18 +118,19 @@ class LinearRegression {
      *  1. SS_res = Sum of Squares residual.
      *  2. SS_tot = Sum of Squares total.
      */
-    let a = labels.sub(hypothesis);
-    let SS_res = a.transpose().matMul(a).arraySync()[0][0];
+    const a = labels.sub(hypothesis);
+    const SS_res = a.transpose().matMul(a).arraySync()[0][0];
 
-    let b = labels.sub(labels.mean());
-    let SS_tot = b.transpose().matMul(b).arraySync()[0][0];
+    const b = labels.sub(labels.mean());
+    const SS_tot = b.transpose().matMul(b).arraySync()[0][0];
 
-    let R_squared = 1 - (SS_res / SS_tot);
+    const R_squared = 1 - (SS_res / SS_tot);
     return R_squared;
   }
 
+  // Record cost function
   recordMSE() {
-    let mse = this.features
+    const mse = this.features
       .matMul(this.weights)
       .sub(this.labels)
       .pow(2)
@@ -145,8 +144,8 @@ class LinearRegression {
   updateLearningRate() {
     if (this.mseHistory.length < 2) return;
 
-    let currMSE = this.mseHistory[0];
-    let prevMSE = this.mseHistory[1];
+    const currMSE = this.mseHistory[0];
+    const prevMSE = this.mseHistory[1];
     // console.log(`CurrentMSE: ${currMSE}, prevMSE: ${prevMSE}`);
     if (currMSE > prevMSE) {
       // if MSE went up, divide learning rate by 2.
@@ -158,17 +157,17 @@ class LinearRegression {
   }
 
   getNextBatch(j) {
-    let { batchSize } = this.options;
-    let startIndex = j * batchSize;
+    const { batchSize } = this.options;
+    const startIndex = j * batchSize;
 
-    let features = this.features.slice([startIndex, 0], [batchSize, -1]);
-    let labels = this.labels.slice([startIndex, 0], [batchSize, -1]);
+    const features = this.features.slice([startIndex, 0], [batchSize, -1]);
+    const labels = this.labels.slice([startIndex, 0], [batchSize, -1]);
 
     return { features, labels };
   }
 
   predict(observations) {
-    let processedObservation = this.processFeatures(observations);
+    const processedObservation = this.processFeatures(observations);
     return processedObservation.matMul(this.weights);
   }
 }
